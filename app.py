@@ -1,29 +1,29 @@
 import streamlit as st
-import datetime
-from utils import get_games_by_date
+from utils import fetch_player_data, fetch_all_players
 
-st.set_page_config(page_title="NBA Games Test", layout="wide")
+# Streamlit UI
+st.title("NBA Player Search")
 
-st.header("🏀 NBA Games Fetch Test")
+# Input field for player name
+player_name = st.text_input("Enter Player Name:", "")
 
-base_date = datetime.date.today()
-date_option = st.radio("Choose Game Date:", ["Today's Games", "Tomorrow's Games", "Custom Date"], key="test_date")
+# Search button
+if st.button("Search") and player_name:
+    with st.spinner("Fetching player data..."):
+        player_data = fetch_player_data(player_name)
 
-if date_option == "Today's Games":
-    game_date = base_date
-elif date_option == "Tomorrow's Games":
-    game_date = base_date + datetime.timedelta(days=1)
-else:
-    game_date = st.date_input("Select a Date", value=base_date, min_value=base_date - datetime.timedelta(days=365), max_value=base_date + datetime.timedelta(days=365))
+    # Handle Errors
+    if "Error" in player_data:
+        st.error(player_data["Error"])
+    else:
+        # Display Career Stats
+        st.subheader("Career Stats")
+        st.dataframe(player_data["Career Stats"])
 
-available_games = get_games_by_date(game_date.strftime('%Y-%m-%d'))
-
-st.write(f"📅 Fetching games for: {game_date.strftime('%Y-%m-%d')}")
-st.write(f"🎮 Number of games found: {len(available_games)}")
-
-if available_games:
-    st.subheader("Games Found:")
-    for game in available_games:
-        st.write(f"{game['home_team']} vs {game['away_team']} (Game ID: {game['game_id']})")
-else:
-    st.warning("🚨 No NBA games found for the selected date. Check the debugging output above for details.")
+        # Display Last 5, 10, 15 Games
+        for key in ["Last 5 Games", "Last 10 Games", "Last 15 Games"]:
+            if key in player_data:
+                st.subheader(key)
+                st.dataframe(player_data[key])
+            else:
+                st.warning(f"{key} data is not available.")
