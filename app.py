@@ -9,14 +9,6 @@ st.title("NBA Player Search")
 # Input for player name
 player_name = st.text_input("Enter Player Name:", "")
 
-# Optional selector for H2H stats
-team_list = [""] + ["ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", 
-                     "GSW", "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", 
-                     "NOP", "NYK", "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", 
-                     "TOR", "UTA", "WAS"]
-
-selected_team = st.selectbox("Optional: Select Opponent for Head-to-Head Stats", team_list)
-
 # Search button
 if st.button("Search") and player_name:
     with st.spinner("Fetching player data..."):
@@ -29,34 +21,31 @@ if st.button("Search") and player_name:
         # Radio button for game logs selection (default to last 5 games)
         selected_games = st.radio("Select Number of Games to Display:", ["Last 5 Games", "Last 10 Games", "Last 15 Games"], index=0)
 
-        # Display selected game logs
+        # Get selected game logs
         game_logs = player_data[selected_games]
-        st.subheader(f"{selected_games} Stats")
-        st.dataframe(game_logs)
 
-        # Convert to DataFrame
-        df = pd.DataFrame(game_logs)
+        if not game_logs:
+            st.warning("No game data available.")
+        else:
+            # Display stats table
+            st.subheader(f"{selected_games} Stats")
+            st.dataframe(game_logs)
 
-        # Ensure numerical columns are selected
-        numeric_columns = df.select_dtypes(include=['number']).columns
+            # Convert to DataFrame
+            df = pd.DataFrame(game_logs)
 
-        # Plot the stats
-        if not df.empty:
-            st.subheader(f"{selected_games} Performance Graph")
-            fig, ax = plt.subplots(figsize=(10, 5))
-            df[numeric_columns].plot(kind='bar', ax=ax)
-            ax.set_title(f"{player_name} - {selected_games}")
-            ax.set_xlabel("Game Index")
-            ax.set_ylabel("Stats")
-            ax.legend(loc="upper right")
-            st.pyplot(fig)
+            # Ensure numerical columns are selected
+            numeric_columns = ["PTS", "REB", "AST", "FG_PCT", "FG3M", "MIN"]  # Adjusted for relevant stats
+            df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors="coerce")
 
-        # Display H2H stats if team selected
-        if selected_team:
-            with st.spinner(f"Fetching head-to-head stats vs. {selected_team}..."):
-                h2h_stats = fetch_head_to_head_stats(player_name, selected_team)  # Function to be added in utils.py
-            if "Error" in h2h_stats:
-                st.error(h2h_stats["Error"])
-            else:
-                st.subheader(f"Head-to-Head Stats vs. {selected_team}")
-                st.dataframe(h2h_stats)
+            # Plot the stats
+            if not df.empty:
+                st.subheader(f"{selected_games} Performance Graph")
+                fig, ax = plt.subplots(figsize=(10, 5))
+                df.set_index("GAME_DATE")[numeric_columns].plot(kind='bar', ax=ax)
+                ax.set_title(f"{player_name} - {selected_games}")
+                ax.set_xlabel("Game Date")
+                ax.set_ylabel("Stats")
+                ax.legend(loc="upper right")
+                plt.xticks(rotation=45)
+                st.pyplot(fig)
