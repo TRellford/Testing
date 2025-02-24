@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 from utils import fetch_player_data, fetch_all_players
 
 # Streamlit UI
@@ -30,12 +31,26 @@ if "player_data" in st.session_state:
         if not game_logs:
             st.warning(f"No game data available for {selected_games}.")
         else:
-            # Select only relevant columns (remove "MIN")
+            # Convert to DataFrame and remove the first column
             df = pd.DataFrame(game_logs)[["GAME_DATE", "PTS", "REB", "AST", "FG_PCT", "FG3M"]]
 
             # Ensure numerical formatting
             df["FG_PCT"] = df["FG_PCT"].round(2)  # FG% to 2 decimal places
 
+            # Set index starting at 1 instead of 0
+            df.index = range(1, len(df) + 1)
+
             # Display stats table
             st.subheader(f"{selected_games} Stats")
             st.dataframe(df)
+
+            # Plot the stats (excluding "Minutes")
+            st.subheader(f"{selected_games} Performance Graph")
+            fig, ax = plt.subplots(figsize=(10, 5))
+            df.set_index("GAME_DATE")[["PTS", "REB", "AST", "FG_PCT", "FG3M"]].plot(kind='bar', ax=ax)
+            ax.set_title(f"{player_name} - {selected_games}")
+            ax.set_xlabel("Game Date")
+            ax.set_ylabel("Stats")
+            ax.legend(loc="upper right")
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
