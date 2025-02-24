@@ -3,11 +3,25 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from utils import fetch_player_data, fetch_all_players
 
-# Streamlit UI
-st.title("NBA Player Search")
+# Fetch all player names once and store in session state
+if "player_list" not in st.session_state:
+    st.session_state["player_list"] = fetch_all_players()
 
-# Input for player name
-player_name = st.text_input("Enter Player Name:", "")
+# Function to filter players based on input
+def filter_players(search_input):
+    if not search_input:
+        return []
+    return [name for name in st.session_state["player_list"] if search_input.lower() in name.lower()]
+
+# User types name, and we dynamically update suggestions
+search_input = st.text_input("Search for a Player:", "")
+filtered_players = filter_players(search_input)
+
+# If matches are found, let the user select from them
+if filtered_players:
+    player_name = st.selectbox("Select a Player:", filtered_players)
+else:
+    player_name = None
 
 # Search button
 if st.button("Search") and player_name:
