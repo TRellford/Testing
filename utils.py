@@ -57,6 +57,13 @@ def fetch_player_data(player_name):
     except Exception as e:
         return {"Error": str(e)}
 
+def fetch_all_players():
+    """Fetch all active NBA players."""
+    try:
+        return [p["full_name"] for p in players.get_active_players()]
+    except Exception as e:
+        return {"Error": str(e)}
+
 def fetch_head_to_head_stats(player_name, opponent_team):
     """Fetch head-to-head stats of a player vs. a specific opponent."""
     try:
