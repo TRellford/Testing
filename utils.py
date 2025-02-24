@@ -20,7 +20,7 @@ def fetch_player_data(player_name):
 
         # Fetch game logs
         try:
-            game_logs = playergamelogs.PlayerGameLogs(player_id=player_id, season_nullable="2023-24").get_data_frames()[0]
+            game_logs = playergamelogs.PlayerGameLogs(player_id=player_id, season_nullable="2024-25").get_data_frames()[0]
         except Exception as e:
             return {
                 "Career Stats": career_stats.to_dict(orient="records"),
