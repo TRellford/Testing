@@ -13,19 +13,23 @@ player_name = st.text_input("Enter Player Name:", "")
 if st.button("Search") and player_name:
     with st.spinner("Fetching player data..."):
         player_data = fetch_player_data(player_name)
+        st.session_state["player_data"] = player_data  # Store in session state
 
-    # Handle errors
+# Retrieve data from session state (if available)
+if "player_data" in st.session_state:
+    player_data = st.session_state["player_data"]
+
     if "Error" in player_data:
         st.error(player_data["Error"])
     else:
-        # Radio button for game logs selection (default to last 5 games)
+        # Radio button for selecting the number of games to display
         selected_games = st.radio("Select Number of Games to Display:", ["Last 5 Games", "Last 10 Games", "Last 15 Games"], index=0)
 
-        # Get selected game logs
-        game_logs = player_data[selected_games]
+        # Display selected game logs
+        game_logs = player_data.get(selected_games, [])
 
         if not game_logs:
-            st.warning("No game data available.")
+            st.warning(f"No game data available for {selected_games}.")
         else:
             # Display stats table
             st.subheader(f"{selected_games} Stats")
@@ -35,7 +39,7 @@ if st.button("Search") and player_name:
             df = pd.DataFrame(game_logs)
 
             # Ensure numerical columns are selected
-            numeric_columns = ["PTS", "REB", "AST", "FG_PCT", "FG3M", "MIN"]  # Adjusted for relevant stats
+            numeric_columns = ["PTS", "REB", "AST", "FG_PCT", "FG3M", "MIN"]
             df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors="coerce")
 
             # Plot the stats
