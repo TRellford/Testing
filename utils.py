@@ -65,8 +65,8 @@ def fetch_player_data(player_name):
         # Convert date column to a readable format
         game_logs_filtered["GAME_DATE"] = pd.to_datetime(game_logs_filtered["GAME_DATE"]).dt.strftime('%Y-%m-%d')
 
-        # Format numerical values
-        game_logs_filtered["FG_PCT"] = game_logs_filtered["FG_PCT"].round(2)  # FG% to 2 decimal places
+        # Convert FG% from decimal to percentage format
+        game_logs_filtered["FG_PCT"] = (game_logs_filtered["FG_PCT"] * 100).round(2).astype(str) + "%"
 
         # Structure output data
         return {
@@ -77,7 +77,7 @@ def fetch_player_data(player_name):
     
     except Exception as e:
         return {"Error": str(e)}
-
+        
 @st.cache_data(ttl=3600)
 def fetch_all_players():
     """Fetch all active NBA players, including nickname mappings."""
