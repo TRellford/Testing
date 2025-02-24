@@ -18,9 +18,9 @@ def fetch_player_data(player_name):
         # Fetch career stats
         career_stats = playercareerstats.PlayerCareerStats(player_id=player_id).get_data_frames()[0]
 
-        # Fetch game logs
+        # Fetch game logs for the 2024-25 season using the correct parameter
         try:
-            game_logs = playergamelogs.PlayerGameLogs(player_id=player_id, season_nullable="2024-25").get_data_frames()[0]
+            game_logs = playergamelogs.PlayerGameLogs(player_id_nullable=player_id, season_nullable="2024-25").get_data_frames()[0]
         except Exception as e:
             return {
                 "Career Stats": career_stats.to_dict(orient="records"),
@@ -37,16 +37,18 @@ def fetch_player_data(player_name):
                 "Last 5 Games": [],
                 "Last 10 Games": [],
                 "Last 15 Games": [],
-                "Error": "No recent game data available."
+                "Error": "No recent game data available for the 2024-25 season."
             }
 
-        # Select key stats for display (adjust columns as needed)
-        stat_columns = ["GAME_DATE", "PTS", "REB", "AST", "FG_PCT", "FG3M", "MIN"]  # Add or remove as needed
+        # Select key stats for display
+        stat_columns = ["GAME_DATE", "PTS", "REB", "AST", "FG_PCT", "FG3M", "MIN"]
 
         # Convert game logs to only relevant columns
         game_logs_filtered = game_logs[stat_columns]
 
-        # Convert to proper format
+        # Convert date column to a readable format
+        game_logs_filtered["GAME_DATE"] = pd.to_datetime(game_logs_filtered["GAME_DATE"]).dt.strftime('%Y-%m-%d')
+
         return {
             "Career Stats": career_stats.to_dict(orient="records"),
             "Last 5 Games": game_logs_filtered.head(5).to_dict(orient="records"),
