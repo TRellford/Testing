@@ -22,11 +22,16 @@ def fetch_player_data(player_name):
         try:
             game_logs = playergamelogs.PlayerGameLogs(player_id=player_id, season_nullable="2024-25").get_data_frames()[0]
         except Exception:
-            return {"Career Stats": career_stats.to_dict(orient="records"), "Game Logs": "No game logs available."}
+            game_logs = pd.DataFrame()  # Return empty DataFrame if API fails
 
         # Ensure game logs exist before accessing head()
         if game_logs.empty:
-            return {"Career Stats": career_stats.to_dict(orient="records"), "Game Logs": "No game logs available."}
+            return {
+                "Career Stats": career_stats.to_dict(orient="records"),
+                "Last 5 Games": [],
+                "Last 10 Games": [],
+                "Last 15 Games": []
+            }
 
         return {
             "Career Stats": career_stats.to_dict(orient="records"),
