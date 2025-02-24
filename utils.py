@@ -1,41 +1,61 @@
 import streamlit as st
+from nba_api.stats.static import players
+from nba_api.stats.endpoints import playercareerstats, playergamelogs
 import pandas as pd
-from utils import fetch_player_data, fetch_all_players
 
-# Streamlit UI
-st.title("NBA Player Search")
+@st.cache_data(ttl=3600)
+def fetch_player_data(player_name):
+    """Fetch player stats from NBA API with proper game log retrieval."""
+    try:
+        # Find matching player
+        matching_players = [p for p in players.get_players() if p["full_name"].lower() == player_name.lower()]
+        
+        if not matching_players:
+            return {"Error": f"Player '{player_name}' not found."}
 
-# Input for player name
-player_name = st.text_input("Enter Player Name:", "")
+        player_id = matching_players[0]["id"]
 
-# Search button
-if st.button("Search") and player_name:
-    with st.spinner("Fetching player data..."):
-        player_data = fetch_player_data(player_name)
-        st.session_state["player_data"] = player_data  # Store in session state
+        # Fetch career stats
+        career_stats = playercareerstats.PlayerCareerStats(player_id=player_id).get_data_frames()[0]
 
-# Retrieve data from session state (if available)
-if "player_data" in st.session_state:
-    player_data = st.session_state["player_data"]
+        # Fetch game logs for the 2024-25 season using the correct parameter
+        try:
+            game_logs = playergamelogs.PlayerGameLogs(player_id_nullable=player_id, season_nullable="2024-25").get_data_frames()[0]
+        except Exception as e:
+            return {
+                "Career Stats": career_stats.to_dict(orient="records"),
+                "Last 5 Games": [],
+                "Last 10 Games": [],
+                "Error": f"Failed to retrieve game logs: {str(e)}"
+            }
 
-    if "Error" in player_data:
-        st.error(player_data["Error"])
-    else:
-        # Radio button for selecting the number of games to display
-        selected_games = st.radio("Select Number of Games to Display:", ["Last 5 Games", "Last 10 Games"], index=0)
+        # Ensure game logs exist
+        if game_logs.empty:
+            return {
+                "Career Stats": career_stats.to_dict(orient="records"),
+                "Last 5 Games": [],
+                "Last 10 Games": [],
+                "Error": "No recent game data available for the 2024-25 season."
+            }
 
-        # Display selected game logs
-        game_logs = player_data.get(selected_games, [])
+        # Select key stats for display (remove "MIN")
+        stat_columns = ["GAME_DATE", "PTS", "REB", "AST", "FG_PCT", "FG3M"]
 
-        if not game_logs:
-            st.warning(f"No game data available for {selected_games}.")
-        else:
-            # Select only relevant columns (remove "MIN")
-            df = pd.DataFrame(game_logs)[["GAME_DATE", "PTS", "REB", "AST", "FG_PCT", "FG3M"]]
+        # Convert game logs to only relevant columns
+        game_logs_filtered = game_logs[stat_columns]
 
-            # Ensure numerical formatting
-            df["FG_PCT"] = df["FG_PCT"].round(2)  # FG% to 2 decimal places
+        # Convert date column to a readable format
+        game_logs_filtered["GAME_DATE"] = pd.to_datetime(game_logs_filtered["GAME_DATE"]).dt.strftime('%Y-%m-%d')
 
-            # Display stats table
-            st.subheader(f"{selected_games} Stats")
-            st.dataframe(df)
+        # Format numerical values
+        game_logs_filtered["FG_PCT"] = game_logs_filtered["FG_PCT"].round(2)  # FG% to 2 decimal places
+
+        # Structure output data
+        return {
+            "Career Stats": career_stats.to_dict(orient="records"),
+            "Last 5 Games": game_logs_filtered.head(5).to_dict(orient="records"),
+            "Last 10 Games": game_logs_filtered.head(10).to_dict(orient="records"),
+        }
+    
+    except Exception as e:
+        return {"Error": str(e)}
