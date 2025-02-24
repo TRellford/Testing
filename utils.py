@@ -49,6 +49,11 @@ def fetch_player_data(player_name):
         # Convert date column to a readable format
         game_logs_filtered["GAME_DATE"] = pd.to_datetime(game_logs_filtered["GAME_DATE"]).dt.strftime('%Y-%m-%d')
 
+        # Format numerical values
+        game_logs_filtered["FG_PCT"] = game_logs_filtered["FG_PCT"].round(2)  # FG% to 2 decimal places
+        game_logs_filtered["MIN"] = game_logs_filtered["MIN"].astype(int)  # Minutes as whole numbers
+
+        # Structure output data
         return {
             "Career Stats": career_stats.to_dict(orient="records"),
             "Last 5 Games": game_logs_filtered.head(5).to_dict(orient="records"),
